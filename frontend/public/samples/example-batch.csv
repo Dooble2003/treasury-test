@@ -1,0 +1,17 @@
+reference,label_files,beverage_type,brand_name,class_type,alcohol_content,net_contents,bottler,country_of_origin
+bourbon_ok,bourbon_ok.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_brand_case,bourbon_ok.jpg,spirits,Old Tom Distillery,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_abv_mismatch,bourbon_ok.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,40%,750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_net_wrong,bourbon_ok.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),700 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_title_case,bourbon_title_case.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_not_bold,bourbon_not_bold.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_typo,bourbon_typo.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_missing_word,bourbon_missing_word.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_no_warning,bourbon_no_warning.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_front_and_back,bourbon_no_warning.jpg;back_panel.png,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_photo,bourbon_photo.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+rye_proof_mismatch,rye_proof_mismatch.png,spirits,River Bend,Straight Rye Whisky,45%,750 mL,"River Bend Spirits, Louisville, Kentucky",
+mezcal_no_origin,mezcal_no_origin.png,spirits,LUNA ROJA,Mezcal Artesanal,42% Alc./Vol.,750 mL,"Luna Roja Imports, Austin, TX",Mexico
+mezcal_with_origin,mezcal_with_origin.png,spirits,LUNA ROJA,Mezcal Artesanal,42% Alc./Vol.,750 mL,"Luna Roja Imports, Austin, TX",Mexico
+not_a_label,not_a_label.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
+bourbon_bottle_photo,bourbon_bottle_photo.jpg,spirits,OLD TOM DISTILLERY,Kentucky Straight Bourbon Whiskey,45% Alc./Vol. (90 Proof),750 mL,"Old Tom Distillery, Bardstown, KY",
