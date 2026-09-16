@@ -1,5 +1,26 @@
+# Local environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Python environments, bytecode, caches, and coverage output
 .venv/
 __pycache__/
+*.py[cod]
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+coverage/
+coverage.xml
+htmlcov/
+
+# Built application served by the backend
 backend/static/
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+
+# Temporary local deployment metadata
+.codex-deploy-tag
