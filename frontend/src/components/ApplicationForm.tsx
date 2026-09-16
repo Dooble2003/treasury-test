@@ -52,7 +52,7 @@ export default function ApplicationForm({ value, onChange }: Props) {
 
   return (
     <div className="application-form">
-      <div className="field--wide">
+      <div className="field field--wide">
         <label className="usa-label" htmlFor={`${id}-type`}>
           Type of product
         </label>
@@ -71,7 +71,10 @@ export default function ApplicationForm({ value, onChange }: Props) {
       </div>
 
       {TEXT_FIELDS.map((field) => (
-        <div key={field.key} className={field.wide ? 'field--wide' : undefined}>
+        <div
+          key={field.key}
+          className={`field${field.wide ? ' field--wide' : ''}`}
+        >
           <label className="usa-label" htmlFor={`${id}-${field.key}`}>
             {field.label}
           </label>
@@ -105,7 +108,7 @@ export default function ApplicationForm({ value, onChange }: Props) {
         </label>
       </div>
       {showCountry && (
-        <div className="field--wide">
+        <div className="field field--wide">
           <label className="usa-label" htmlFor={`${id}-country`}>
             Country of origin
           </label>

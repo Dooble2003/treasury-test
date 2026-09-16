@@ -275,6 +275,22 @@ main {
   margin-top: 0;
 }
 
+/* Hints wrap to one or two lines depending on the wording, so the boxes are pinned to
+   the bottom of each cell. Otherwise neighbouring fields start at different heights. */
+.application-form .field {
+  display: flex;
+  flex-direction: column;
+}
+
+.application-form .field .usa-hint {
+  margin-bottom: 0.4rem;
+}
+
+.application-form .field .usa-input,
+.application-form .field .usa-select {
+  margin-top: auto;
+}
+
 .application-form .usa-input,
 .application-form .usa-select {
   max-width: none;
