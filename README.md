@@ -1,118 +1,177 @@
-# **Take-Home Project: AI-Powered Alcohol Label Verification App**
+# Label Check
 
-## **Project Background & Stakeholder Context**
+A prototype that helps TTB compliance agents compare an alcohol label with its COLA application. You upload the label images, enter (or import) what the application says, and it reports field by field whether the label matches, with the spot on the label it matched highlighted.
 
-*The following document contains notes from our discovery sessions with the Compliance Division, along with technical requirements for the prototype. We've included stakeholder feedback to give you context on how this tool will be used.*
+It is a helper for the reviewer, not an approval system. Every field comes back as **Matches**, **Needs a closer look**, **Does not match** or **Not checked**, and the agent makes the call.
 
-### **Interview Notes: Sarah Chen, Deputy Director of Label Compliance**
+**Live app:** _added after deployment_
 
-*Conducted Tuesday, 3:15 PM — Sarah was running late from her daughter's school play rehearsal*
+## Trying it
 
-"Thanks for meeting with me. Sorry about the delay—my daughter's playing the lead in her school's production of *Annie*next week and rehearsals have been crazy. Anyway, let me tell you about what we're dealing with here.
+The quickest way is the example buttons in the app:
 
-So the TTB reviews about 150,000 label applications a year. Our team of 47 agents handles all of them. Back in the 80s—before my time—they actually had over 100 agents, but budget cuts, you know how it goes. We've been doing things basically the same way since the COLA system went online in 2003. That was a big upgrade from paper forms, believe it or not.
+- **Check one label** has "Example: label that matches" and "Example: label with a problem". Each loads a sample label and application and runs the check.
+- **Check many labels** has "Load an example batch", which loads a 15-row spreadsheet and its images.
 
-The actual review process is pretty straightforward. An agent pulls up an application, looks at the label artwork, and checks that what's on the label matches what's in the application. Brand name matches? Check. ABV is correct? Check. Government warning is there? Check. It takes maybe 5-10 minutes per application for a simple one, longer if there are issues.
+Sample images are in `frontend/public/samples/`. The full test set with expected results is in `eval/`.
 
-Here's the thing though—and this is what got leadership interested in AI—a lot of what we do is just... matching. Like literally just making sure the number on the form is the same as the number on the label. My agents spend half their day doing what's essentially data entry verification. It's not that they can't do more complex analysis, it's that they're drowning in routine stuff.
+## What it checks
 
-Oh, I should mention—we tried a pilot with the scanning vendor last year. Disaster. The system would take 30, 40 seconds sometimes to process a single label. Our agents just went back to doing it by eye because they could do five labels in the time it took the machine to do one. **If we can't get results back in about 5 seconds, nobody's going to use it.** We learned that the hard way.
+| Field | How it is compared |
+| --- | --- |
+| Brand name, class or type | Same words, ignoring case, punctuation and spacing. `STONE'S THROW` on the label matches `Stone's Throw` in the application, with a note that the capitalization differs. A near miss (one or two letters off) is marked for a closer look. |
+| Alcohol content | The percentage is compared as a number. If the label also shows proof, it has to be twice the ABV. |
+| Net contents | Converted to mL (mL, cL, L and fl oz are understood) and compared within 1.5%, so `12 FL OZ` matches `355 mL`. |
+| Bottler or producer | Each comma-separated part of the name and address must appear. State names and abbreviations count as the same (`Kentucky` / `KY`). Unconfirmed results get one enlarged crop read of the likely producer line. |
+| Country of origin | Checked only when the application gives one. A country name embedded in other text, such as `India Pale Ale`, needs review unless there is an origin statement or a separate country line. |
+| Government warning | Word for word against the statement in 27 CFR 16.21. `GOVERNMENT WARNING` must be in capital letters and bold (16.22). Missing, extra or changed words are shown as a diff. |
 
-What else... The agents really vary in their tech comfort level. Dave's been here since the Clinton administration and still prints his emails. Meanwhile, Jenny's fresh out of college and probably could have built this tool herself. We need something **my mother could figure out**—she's 73 and just learned to video call her grandkids last year, if that gives you a benchmark. Half our team is over 50. Clean, obvious, no hunting for buttons.
+A field left empty in the application is reported as Not checked, which covers wine and beer where alcohol content is optional.
 
-One more thing that came up in our last team meeting—during peak season, we get these big importers who dump 200, 300 label applications on us at once. Right now we literally have to process them one at a time. If there was some way to **handle batch uploads**, that would be huge. Janet from our Seattle office has been asking about this for years."
+## Running locally
 
-### **Interview Notes: Marcus Williams, IT Systems Administrator**
+You need Python 3.12 with [uv](https://docs.astral.sh/uv/) and Node 22 or newer.
 
-*Coffee chat, Thursday morning*
+Build the frontend once and let the backend serve it:
 
-"Sarah probably gave you the business side. Let me fill you in on some of the technical landscape.
+```bash
+cd frontend
+npm ci
+npm run build
+cp -r dist ../backend/static
 
-Our current infrastructure is... well, it's government infrastructure, let's leave it at that. We're on Azure now after the migration in 2019. That was a whole thing—don't get me started on the FedRAMP certification process. Took 18 months just for the paperwork.
-
-The COLA system is built on .NET, though there's been talk about modernizing it for years. We had a contractor come in last summer to do an assessment and they quoted us $4.2 million for a full rebuild. That went nowhere, obviously.
-
-For this prototype, we're not looking to integrate with COLA directly—that's a whole different beast with its own authorization requirements. Think of this as a standalone proof-of-concept that could potentially inform future procurement decisions. If it works well, maybe we look at how to incorporate it into the workflow. But that's years away, realistically.
-
-Security-wise, we'd need to be careful with any production deployment—there's PII considerations, document retention policies, the usual federal compliance stuff. But for a prototype? Just don't do anything crazy. We're not storing anything sensitive for this exercise.
-
-Oh, and our network blocks outbound traffic to a lot of domains, so keep that in mind if you're thinking about cloud APIs. During the scanning vendor pilot, half their features didn't work because our firewall blocked connections to their ML endpoints. Classic."
-
-### **Interview Notes: Dave Morrison, Senior Compliance Agent (28 years)**
-
-*Brief hallway conversation*
-
-"Look, I'll be honest, I've seen a lot of these 'modernization' projects come and go. Remember the automated phone system they put in back in 2008? Supposed to reduce call volume. We ended up with more calls because nobody could figure out how to navigate it.
-
-The thing about label review is there's nuance. You can't just pattern match everything. Like, I had one last week where the brand name was 'STONE'S THROW' on the label but 'Stone's Throw' in the application. Technically a mismatch? Sure. But it's obviously the same thing. You need judgment.
-
-That said, I'm not against new tools. If something can help me get through my queue faster, great. Just don't make my life harder in the process. I spend enough time fighting with COLA as it is."
-
-### **Interview Notes: Jenny Park, Junior Compliance Agent (8 months)**
-
-*Teams call, Friday afternoon*
-
-"I'm so excited you're working on this! When I started here, I was kind of shocked at how manual everything is. Like, I literally have a printed checklist on my desk that I go through for every label. Brand name—check with my eyes. ABV—check with my eyes. Warning statement—check with my eyes. It's 2024!
-
-The one thing I'd say is the warning statement check is actually trickier than it sounds. It has to be **exact**. Like, word-for-word, and the 'GOVERNMENT WARNING:' part has to be in all caps and bold. Sarah probably mentioned this but people try to get creative with the warning all the time. Smaller font, different wording, burying it in tiny text. I caught one last month where they used 'Government Warning' in title case instead of all caps. Rejected.
-
-Also—and this is maybe out of scope for a prototype—but it would be amazing if the tool could handle images that aren't perfectly shot. I've seen labels that are photographed at weird angles, or the lighting is bad, or there's glare on the bottle. Right now if an agent can't read the label they just reject it and ask for a better image. But if AI could handle some of that..."
-
-## **Technical Requirements**
-
-You are free to use any programming languages, frameworks, or libraries you prefer. We want to see what kind of engineering, design, and integration decisions you make.
-
-## **Additional Context**
-
-### **About TTB Label Requirements**
-
-For reference, TTB requires specific information on alcohol beverage labels. The exact requirements vary by beverage type (beer, wine, distilled spirits) but common elements include:
-
-- Brand name
-- Class/type designation
-- Alcohol content (with some exceptions for certain wine/beer)
-- Net contents
-- Name and address of bottler/producer
-- Country of origin for imports
-- **Government Health Warning Statement** (mandatory on all alcohol beverages)
-
-We encourage you to review TTB's guidelines at ttb.gov for additional context on label requirements.
-
-### **Sample Label**
-
-Your app should handle labels containing information like the example below:
-
-**Example Distilled Spirits Label Fields:**
-
-- Brand Name: "OLD TOM DISTILLERY"
-- Class/Type: "Kentucky Straight Bourbon Whiskey"
-- Alcohol Content: "45% Alc./Vol. (90 Proof)"
-- Net Contents: "750 mL"
-- Government Warning: \[Standard government warning text\]
-
-*We encourage you to create or source additional test labels—AI image generation tools work well for this.*
-
-## **Deliverables**
-
-1. **Source Code Repository** (GitHub or similar)
-   - All source code
-   - README with setup and run instructions
-   - Brief documentation of approach, tools used, assumptions made
-2. **Deployed Application URL**
-   - Working prototype we can access and test
-
-## **Evaluation Criteria**
-
-- Correctness and completeness of core requirements
-- Code quality and organization
-- Appropriate technical choices for the scope
-- User experience and error handling
-- Attention to requirements
-- Creative problem-solving
-
-We understand this is time-constrained. A working core application with clean code is preferred over ambitious but incomplete features. Document any trade-offs or limitations.
-
-*Questions? Reach out for clarification—though we also value how you fill in gaps independently.*
-
-Good luck!
+cd ../backend
+uv sync
+uv run uvicorn app.main:app --port 8000
 ```
+
+Then open http://localhost:8000. The first start takes a few seconds while the OCR models load.
+
+For frontend work, run the backend as above and `npm run dev` in `frontend/`. Vite proxies `/api` to port 8000.
+
+With Docker:
+
+```bash
+docker build -t label-check .
+docker run -p 8000:8000 label-check
+```
+
+Tests and the accuracy check:
+
+```bash
+cd backend
+uv run pytest
+uv run python scripts/evaluate.py
+```
+
+## How it works
+
+```mermaid
+flowchart LR
+    A[Label images + application] --> B[Read all text with OCR]
+    B --> C[Look for each application value in the label text]
+    B --> D[Find GOVERNMENT WARNING and re-read that area closer up]
+    C --> E[Per-field result with the matching text and its position]
+    D --> E
+    E --> F[Checklist and highlighted image in the browser]
+```
+
+**It checks, it doesn't extract.** The application already says what the brand, ABV and so on should be, so the app searches the label text for those values instead of trying to work out on its own which text is the brand name. That is a much easier problem, it is deterministic, and every result can be traced back to a line on the label.
+
+**OCR** is [RapidOCR](https://github.com/RapidAI/RapidOCR) (PaddleOCR models running on ONNX Runtime) on the CPU. The models ship inside the Python package, so nothing is downloaded or sent anywhere at runtime.
+
+**The warning statement** is the hard part. It is usually the smallest, most tightly spaced text on the label, and the text detector sometimes merges two of its lines into one garbled line. When the first read of the warning is incomplete or low confidence, the app crops the warning area, enlarges it and reads it again at up to three scales, keeping the most complete and confident reading. The decision to try another scale looks only at confidence and word count, never at whether the words match, so a real misprint like `pregnacy` is still reported as a misprint.
+
+Sloping warning lines use tighter detection boundaries during the crop read. Wider boxes can include neighboring lines and confuse the recognizer. Flat labels retain the original boundaries, which worked better on the flat-label tests. Producer crops also use tighter boundaries. A producer crop replaces the original result only when that reading confirms the whole name and address; fuzzy matches still need review.
+
+A word that differs from the statement fails the check when the OCR was confident about it. If the OCR was unsure, the result is Needs a closer look instead, so a blurry photo does not produce a false rejection. The same idea decides what a missing word means: words missing between two confidently read words are missing from the label, while words missing off the end usually mean the reading stopped early at a crop edge or a curved bottle.
+
+**Spacing is not wording.** The recognizer splits and joins words around punctuation, reading "WARNING: (1)" as one word on tightly set labels. Since that cannot be told apart from the label's own spacing, and the regulation is about the words, differences that disappear when the spacing is removed are treated as a match.
+
+**Small print is read, not excused.** Warning text is the smallest print on a label, and in a photo of a bottle it is often a few pixels tall and curves away with the glass. When the first pass misses it, the app finds the smallest text on the label and reads that area again in three overlapping strips, so each pass sees a short, nearly straight piece of every line. Pieces of the same line are matched by their baselines, straightened, joined back together and read as one line. That works from the shape of the text, not from where the warning usually sits or what it ought to say, so a misprint survives the rebuild: a label printed "pregnacy" still reads "pregnacy" afterwards and a title-case heading stays title case, which is covered by tests. Only when the recovery also fails does the app say it could not read enough text to verify the warning, and it never calls the warning missing on an image too small to have shown it.
+
+**Capital letters:** OCR often guesses the case of letters like `o`, `s`, `v` and `w` wrong because the capital and small forms look the same, so it returned `GoVERNMENT` on correctly printed labels. The caps check ignores those letters and only looks at letters whose shapes differ. Title case (`Government Warning`) is still caught because `e`, `r`, `n`, `m` and `t` give it away.
+
+**Bold:** the heading's stroke thickness is compared with the body text next to it. On the test set, bold headings measured 1.26 to 1.38 times the body stroke width and a regular-weight heading 1.04. Anything under 1.15 is marked Needs a closer look (not a failure), and the result shows a close-up of the heading so the agent can confirm in a second.
+
+**Batches** are driven by the browser. It reads the CSV, shrinks large images, and sends labels to the same `/api/verify` endpoint three at a time, updating the table as results come back. The server stays stateless and stores nothing.
+
+## Decisions and trade-offs
+
+- **Local OCR instead of a cloud AI service.** Marcus mentioned that the agency firewall blocks many outbound ML endpoints and that the last vendor pilot broke because of it. Running OCR in the container avoids that, keeps label images inside the deployment, and costs nothing per label. I also avoided using a vision LLM to read the warning: they tend to "correct" text toward what they expect, and a well known statement like this one is exactly where a misspelling could be silently fixed.
+- **Speed.** Sarah's bar was about 5 seconds. The 18-case local evaluation averaged 2.65 s, with a 2.08 s median and 5.88 s at the 95th percentile (4 OCR threads, including image decoding but excluding network upload). The supplied can photo took 2.13 s. The default is at most 4 OCR threads; `OCR_THREADS` can override it for deployment measurements. These desktop results meet the average target, but individual checks can exceed 5 seconds. Cloud latency still needs measurement.
+- **One OCR job at a time per server.** OCR already uses all its threads for a single label, so running two at once just makes both slower. Extra requests queue for up to 30 seconds, then get a "busy, try again" response that the batch page retries automatically. At roughly 2 seconds a label, a 300-label batch takes about 10 minutes on one instance. More throughput means more instances.
+- **Nothing stored.** Images are processed in memory and dropped. The downside is that batch results only live in the browser tab until you download the CSV, and closing the tab mid-batch loses progress (the page warns first).
+- **Looks like a government tool, not a dashboard.** The interface builds on USWDS, on a warm off-white ground rather than stark white, with a navy header and a single gold accent. Label artwork is cream and white paper, so a dark or heavily tinted interface would fight the thing being reviewed, and low contrast is the wrong choice for a team where half the reviewers are over 50. Motion is limited to showing where new content came from: results rise into place, statuses settle, the batch bar fills. All of it is disabled under prefers-reduced-motion.
+- **Built to fit on a screen.** Images and application details sit side by side, the check button stays in reach at the bottom, and results that matched collapse to one line so the items needing a decision are what you see. A reviewer working a queue should not have to scroll to find the problem.
+- **USWDS for the interface.** It is the federal design system, so agents will find it familiar, and it handles accessibility basics well. Text is larger than the default, there is one main action per step, and statuses always use words and icons, never color alone.
+- **Python rather than .NET.** COLA is .NET, but the OCR and image tooling in Python is far better. The checker is a plain HTTP API, so a .NET system could call it later.
+
+## Accuracy
+
+`backend/scripts/evaluate.py` runs every case in `eval/cases.csv` and compares the results with the expected statuses. Current result: **54 of 54 checks correct across 19 cases**. These are the specified field checks, not a claim that every field on every image is read correctly.
+
+| Case | What it tests |
+| --- | --- |
+| bourbon_ok, bourbon_front_and_back | Clean label; warning on a separate back panel |
+| bourbon_brand_case, bourbon_wrong_brand | Case-only difference passes; different brand fails |
+| bourbon_abv_mismatch, rye_proof_mismatch | Wrong ABV; proof that isn't 2x ABV |
+| bourbon_net_cl, bourbon_net_wrong | 75 cL equals 750 mL; 700 mL fails |
+| bourbon_title_case, bourbon_not_bold, bourbon_typo, bourbon_missing_word, bourbon_no_warning | Warning defects |
+| mezcal_with_origin, mezcal_no_origin | Country of origin on an import |
+| bourbon_photo, bourbon_bottle_photo | Rotated, blurred, glare; a phone photo of a bottle on a bar where the warning is a few pixels a line and curves with the glass |
+| not_a_label | No text at all |
+| ipa_photo_can_ok | Supplied can photo: producer address, complete warning, alcohol content and net contents |
+
+The label artwork was generated with ChatGPT, leaving an empty band where the warning goes. `scripts/make_test_labels.py` draws the warning into that band, so each defect is exactly what the test says it is. This is a small, fairly clean test set, and real submissions will be messier. It mainly shows that the rules behave as intended.
+
+The can photo is a separate regression fixture with text checked visually. Its stylized `Foghorn` logo and large `IPA` lettering are still not read correctly; those fields are not counted as successful checks in the evaluation.
+
+## Assumptions
+
+- Most images are the flat label artwork submitted with an application. Photos of bottles are handled on a best-effort basis.
+- Labels are in English.
+- Application data is typed in by the agent or supplied in a CSV. There is no COLA integration.
+- Only the heading's case and weight are enforced. 16.22 does not require the rest of the statement to be in any particular case, so an all-caps warning is accepted.
+
+## Limitations
+
+- Minimum type size and characters per inch (16.22) are not checked. The physical size of the label can't be known from pixels alone.
+- Bold detection is a measurement, not a certainty, so it never fails a label on its own. Below about 20 px a heading, bold and regular strokes differ by less than a pixel, and the app says so instead of guessing. The close-up of the heading is there for the agent to judge.
+- On small print the recognizer confuses shapes (it read "ALCOHOLIC" as "ALCOHDLIC" on a 13 px line). When the image cannot resolve fine print, wording differences are reported for review rather than as a mismatch.
+- Strong glare and very small print can still defeat OCR. The app then says the text was hard to read and marks items for a closer look rather than failing them.
+- Fine-print readability depends on how much of the image the label fills, not just megapixels. The supplied 1.6 megapixel can close-up is readable after a crop pass, while a distant bottle at the same resolution can leave only a few pixels per line. The image-size notice is a caution, not proof that the warning cannot be read.
+- Beverage-specific rules (sulfite declarations, age statements, color additives and so on) are out of scope.
+- There is no sign-in, audit trail or retention policy, all of which a production system would need.
+
+## What I would do next
+
+- Test against real approved labels from the TTB Public COLA Registry and tune the thresholds on those.
+- Add perspective correction for photos taken at an angle.
+- Run batches server-side with a queue and short-lived storage so large batches survive a closed tab.
+- Evaluate Azure AI Document Intelligence as a second reader for low-confidence images. It stays inside the Azure boundary the agency already uses.
+
+## Project layout
+
+```
+backend/
+  app/
+    main.py        API endpoints and upload handling
+    verify.py      runs OCR and the checks for one label
+    ocr.py         image loading and OCR
+    fields.py      brand, class, alcohol, net contents, bottler, origin
+    warning.py     government warning checks
+    text.py        text normalization
+  scripts/         test label generator and accuracy check
+  tests/
+frontend/
+  src/
+    pages/         single label and batch screens
+    components/
+eval/              test labels and expected results
+Dockerfile
+```
+
+## Tools and libraries
+
+FastAPI, RapidOCR, ONNX Runtime, OpenCV, Pillow and RapidFuzz on the backend. React, TypeScript, Vite, USWDS and Papa Parse on the frontend. Test label artwork was generated with ChatGPT.
