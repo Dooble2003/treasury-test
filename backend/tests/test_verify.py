@@ -8,6 +8,8 @@ from app.fields import check_bottler
 from app.models import Application
 from app.verify import _reread_bottler, verify
 
+SAMPLES = Path(__file__).resolve().parents[2] / "frontend/public/samples"
+
 
 @pytest.mark.parametrize(
     ("reading", "status"),
@@ -70,3 +72,31 @@ def test_can_photo_small_print():
         for box in fields[key].boxes:
             assert box.image == 0
             assert all(0 <= x <= image.shape[1] and 0 <= y <= image.shape[0] for x, y in box.points)
+
+
+def test_ipa_example_needs_review():
+    image = ocr.load_image((SAMPLES / "ipa_front_label.png").read_bytes())
+    result = verify(
+        [image],
+        Application(
+            beverage_type="beer",
+            brand_name="Harbor Light",
+            class_type="IPA",
+            alcohol_content="6.8",
+            net_contents="12",
+            bottler="Harbor Light Co.",
+            country_of_origin="India",
+        ),
+    )
+    statuses = {field.key: field.status for field in result.fields}
+    assert result.overall == "review"
+    assert statuses["class_type"] == "pass"
+    assert statuses["bottler"] == "review"
+    assert statuses["country_of_origin"] == "review"
+
+
+def test_blurry_example_asks_for_a_better_image():
+    image = ocr.load_image((SAMPLES / "ipa_too_blurry.jpg").read_bytes())
+    result = verify([image], Application())
+    assert result.overall == "unreadable"
+    assert "better image" in result.message

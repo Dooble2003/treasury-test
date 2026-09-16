@@ -16,9 +16,21 @@ const OLD_TOM: Application = {
   country_of_origin: '',
 }
 
+const HARBOR_LIGHT: Application = {
+  beverage_type: 'beer',
+  brand_name: 'Harbor Light',
+  class_type: 'IPA',
+  alcohol_content: '6.8',
+  net_contents: '12',
+  bottler: 'Harbor Light Co.',
+  country_of_origin: 'India',
+}
+
 const EXAMPLES = {
   good: { images: ['bourbon_ok.jpg'], application: OLD_TOM },
   problem: { images: ['bourbon_title_case.jpg'], application: OLD_TOM },
+  review: { images: ['ipa_front_label.png'], application: HARBOR_LIGHT },
+  unreadable: { images: ['ipa_too_blurry.jpg'], application: HARBOR_LIGHT },
 }
 
 type State =
@@ -117,24 +129,42 @@ export default function SingleCheck() {
 
   return (
     <>
-      <div className="examples">
+      <div className="examples examples--single-check">
         <p>New here? See how it works with a sample label:</p>
-        <button
-          type="button"
-          className="usa-button usa-button--outline"
-          onClick={() => runExample('good')}
-          disabled={checking}
-        >
-          Example: label that matches
-        </button>
-        <button
-          type="button"
-          className="usa-button usa-button--outline"
-          onClick={() => runExample('problem')}
-          disabled={checking}
-        >
-          Example: label with a problem
-        </button>
+        <div className="examples__button-grid">
+          <button
+            type="button"
+            className="usa-button usa-button--outline"
+            onClick={() => runExample('good')}
+            disabled={checking}
+          >
+            Example: label that matches
+          </button>
+          <button
+            type="button"
+            className="usa-button usa-button--outline"
+            onClick={() => runExample('problem')}
+            disabled={checking}
+          >
+            Example: label with a problem
+          </button>
+          <button
+            type="button"
+            className="usa-button usa-button--outline"
+            onClick={() => runExample('review')}
+            disabled={checking}
+          >
+            Example: label needs review
+          </button>
+          <button
+            type="button"
+            className="usa-button usa-button--outline"
+            onClick={() => runExample('unreadable')}
+            disabled={checking}
+          >
+            Example: Need better image
+          </button>
+        </div>
       </div>
 
       <form onSubmit={submit} noValidate>

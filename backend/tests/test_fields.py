@@ -1,6 +1,13 @@
 import pytest
 
-from app.fields import check_alcohol, check_bottler, check_net_contents, check_origin, match_text
+from app.fields import (
+    check_alcohol,
+    check_bottler,
+    check_class_type,
+    check_net_contents,
+    check_origin,
+    match_text,
+)
 from app.models import Application
 from app.text import fix_digits, loose_address
 
@@ -41,6 +48,14 @@ def test_case_difference_is_noted(lines_from):
 def test_one_letter_off_needs_review(lines_from):
     result = match_text("brand_name", "Brand name", "Stone's Thr0w", lines_from("STONE'S THROW"))
     assert result.status == "review"
+
+
+def test_ipa_class_matches_spelled_out_label(lines_from):
+    app = Application(beverage_type="beer", class_type="IPA")
+    result = check_class_type(app, lines_from("India Pale Ale"))
+    assert result.status == "pass"
+    assert result.expected == "IPA"
+    assert result.found == "India Pale Ale"
 
 
 @pytest.mark.parametrize(

@@ -299,10 +299,25 @@ def check_origin(expected: str, lines: list[Line]) -> FieldResult:
     return result
 
 
+def check_class_type(app: Application, lines: list[Line]) -> FieldResult:
+    result = match_text("class_type", "Class or type", app.class_type, lines)
+    if result.status == "pass":
+        return result
+
+    # Beer applications commonly use the standard abbreviation while the label
+    # spells the style out. Treat those two forms as the same class or type.
+    if app.beverage_type == "beer" and loose(app.class_type) == "ipa":
+        expanded = match_text("class_type", "Class or type", "India Pale Ale", lines)
+        if expanded.status == "pass":
+            expanded.expected = app.class_type.strip()
+            return expanded
+    return result
+
+
 def check_fields(app: Application, lines: list[Line]) -> list[FieldResult]:
     return [
         match_text("brand_name", "Brand name", app.brand_name, lines),
-        match_text("class_type", "Class or type", app.class_type, lines),
+        check_class_type(app, lines),
         check_alcohol(app, lines),
         check_net_contents(app, lines),
         check_bottler(app.bottler, lines),

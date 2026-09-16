@@ -2,7 +2,7 @@
 
 A prototype that helps TTB compliance agents compare an alcohol label with its COLA application. You upload the label images, enter (or import) what the application says, and it reports field by field whether the label matches, with the spot on the label it matched highlighted.
 
-It is a helper for the reviewer, not an approval system. Every field comes back as **Matches**, **Needs a closer look**, **Does not match** or **Not checked**, and the agent makes the call.
+It is a helper for the reviewer, not an approval system. Every field comes back as **Matches**, **Needs review**, **Does not match** or **Not checked**, and the agent makes the call.
 
 **Live app:** _added after deployment_
 
@@ -10,7 +10,7 @@ It is a helper for the reviewer, not an approval system. Every field comes back 
 
 The quickest way is the example buttons in the app:
 
-- **Check one label** has "Example: label that matches" and "Example: label with a problem". Each loads a sample label and application and runs the check.
+- **Check one label** has examples for a matching label, a label with a problem, a label that needs review, and an image that is too poor to read. Each loads a sample label and application and runs the check.
 - **Check many labels** has "Load an example batch", which loads a 16-row spreadsheet and its images.
 
 Sample images are in `frontend/public/samples/`. The full test set with expected results is in `eval/`.
@@ -21,7 +21,7 @@ A single label's results have a "Print these results" button, which opens every 
 
 | Field | How it is compared |
 | --- | --- |
-| Brand name, class or type | Same words, ignoring case, punctuation and spacing. `STONE'S THROW` on the label matches `Stone's Throw` in the application, with a note that the capitalization differs. A near miss (one or two letters off) is marked for a closer look. |
+| Brand name, class or type | Same words, ignoring case, punctuation and spacing. `STONE'S THROW` on the label matches `Stone's Throw` in the application, with a note that the capitalization differs. A near miss (one or two letters off) is marked for review. |
 | Alcohol content | The percentage is compared as a number. An application that states only the proof (`90 Proof`) is read as half that. If the label also shows proof, it has to be twice the ABV. |
 | Net contents | Converted to mL (mL, cL, L and fl oz are understood) and compared within 1.5%, so `12 FL OZ` matches `355 mL`. |
 | Bottler or producer | Each comma-separated part of the name and address must appear. State names and abbreviations count as the same (`Kentucky` / `KY`). Unconfirmed results get one enlarged crop read of the likely producer line. |
@@ -86,7 +86,7 @@ flowchart LR
 
 Sloping warning lines use tighter detection boundaries during the crop read. Wider boxes can include neighboring lines and confuse the recognizer. Flat labels retain the original boundaries, which worked better on the flat-label tests. Producer crops also use tighter boundaries. A producer crop replaces the original result only when that reading confirms the whole name and address; fuzzy matches still need review.
 
-A word that differs from the statement fails the check when the OCR was confident about it. If the OCR was unsure, the result is Needs a closer look instead, so a blurry photo does not produce a false rejection. The same idea decides what a missing word means: words missing between two confidently read words are missing from the label, while words missing off the end usually mean the reading stopped early at a crop edge or a curved bottle.
+A word that differs from the statement fails the check when the OCR was confident about it. If the OCR was unsure, the result is Needs review instead, so a blurry photo does not produce a false rejection. The same idea decides what a missing word means: words missing between two confidently read words are missing from the label, while words missing off the end usually mean the reading stopped early at a crop edge or a curved bottle.
 
 **Spacing is not wording.** The recognizer splits and joins words around punctuation, reading "WARNING: (1)" as one word on tightly set labels. Since that cannot be told apart from the label's own spacing, and the regulation is about the words, differences that disappear when the spacing is removed are treated as a match.
 
@@ -94,7 +94,7 @@ A word that differs from the statement fails the check when the OCR was confiden
 
 **Capital letters:** OCR often guesses the case of letters like `o`, `s`, `v` and `w` wrong because the capital and small forms look the same, so it returned `GoVERNMENT` on correctly printed labels. The caps check ignores those letters and only looks at letters whose shapes differ. Title case (`Government Warning`) is still caught because `e`, `r`, `n`, `m` and `t` give it away.
 
-**Bold:** the heading's stroke thickness is compared with the body text next to it. On the test set, bold headings measured 1.26 to 1.38 times the body stroke width and a regular-weight heading 1.04. Anything under 1.15 is marked Needs a closer look (not a failure), and the result shows a close-up of the heading so the agent can confirm in a second.
+**Bold:** the heading's stroke thickness is compared with the body text next to it. On the test set, bold headings measured 1.26 to 1.38 times the body stroke width and a regular-weight heading 1.04. Anything under 1.15 is marked Needs review (not a failure), and the result shows a close-up of the heading so the agent can confirm in a second.
 
 **Batches** are driven by the browser. It reads the CSV, shrinks large images, and sends labels to the same `/api/verify` endpoint three at a time, updating the table as results come back. The server stays stateless and stores nothing.
 
@@ -141,7 +141,7 @@ The can photo is a separate regression fixture with text checked visually. Its s
 - Minimum type size and characters per inch (16.22) are not checked. The physical size of the label can't be known from pixels alone.
 - Bold detection is a measurement, not a certainty, so it never fails a label on its own. Below about 20 px a heading, bold and regular strokes differ by less than a pixel, and the app says so instead of guessing. The close-up of the heading is there for the agent to judge.
 - On small print the recognizer confuses shapes (it read "ALCOHOLIC" as "ALCOHDLIC" on a 13 px line). When the image cannot resolve fine print, wording differences are reported for review rather than as a mismatch.
-- Strong glare and very small print can still defeat OCR. The app then says the text was hard to read and marks items for a closer look rather than failing them.
+- Strong glare and very small print can still defeat OCR. The app then says the text was hard to read and marks items for review rather than failing them.
 - Fine-print readability depends on how much of the image the label fills, not just megapixels. The supplied 1.6 megapixel can close-up is readable after a crop pass, while a distant bottle at the same resolution can leave only a few pixels per line. The image-size notice is a caution, not proof that the warning cannot be read.
 - Beverage-specific rules (sulfite declarations, age statements, color additives and so on) are out of scope.
 - There is no sign-in, audit trail or retention policy, all of which a production system would need.

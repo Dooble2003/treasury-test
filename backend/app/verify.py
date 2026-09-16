@@ -13,9 +13,9 @@ from app.warning import _find_heading, _tokens, check_warning
 
 MESSAGES = {
     "pass": "Everything checked on the label matches the application.",
-    "review": "Some items need a closer look before you decide.",
+    "review": "Some items need review before you decide.",
     "fail": "Some items on the label do not match the application.",
-    "unreadable": "No text could be read from the image. Ask the applicant for a clearer image.",
+    "unreadable": "No text could be read from the image. Ask the applicant for a better image.",
 }
 
 

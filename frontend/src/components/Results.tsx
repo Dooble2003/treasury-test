@@ -11,7 +11,7 @@ import StatusBadge from './StatusBadge'
 
 const SUMMARY: Record<Overall, { title: string; alert: string }> = {
   pass: { title: 'All checks passed', alert: 'success' },
-  review: { title: 'Some items need a closer look', alert: 'warning' },
+  review: { title: 'Some items need review', alert: 'warning' },
   fail: { title: 'Problems found', alert: 'error' },
   unreadable: { title: 'The label could not be read', alert: 'info' },
 }

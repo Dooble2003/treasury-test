@@ -20,7 +20,7 @@ type Filter = 'all' | 'fail' | 'review' | 'pass' | 'error'
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'fail', label: 'Does not match' },
-  { value: 'review', label: 'Needs a closer look' },
+  { value: 'review', label: 'Needs review' },
   { value: 'pass', label: 'Matches' },
   { value: 'error', label: 'Could not check' },
 ]
