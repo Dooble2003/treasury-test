@@ -12,6 +12,7 @@ The quickest way is the example buttons in the app:
 
 - **Check one label** has examples for a matching label, a label with a problem, a label that needs review, and an image that is too poor to read. Each loads a sample label and application and runs the check.
 - **Check many labels** has "Load an example batch", which loads a 16-row spreadsheet and its images.
+- You can also try any of the other example buttons to see how the checker handles different scenarios.
 
 Sample images are in `frontend/public/samples/`. The full test set with expected results is in `eval/`.
 
@@ -109,49 +110,12 @@ A word that differs from the statement fails the check when the OCR was confiden
 - **USWDS for the interface.** It is the federal design system, so agents will find it familiar, and it handles accessibility basics well. Text is larger than the default, there is one main action per step, and statuses always use words and icons, never color alone.
 - **Python rather than .NET.** COLA is .NET, but the OCR and image tooling in Python is far better. The checker is a plain HTTP API, so a .NET system could call it later.
 
-## Accuracy
-
-`backend/scripts/evaluate.py` runs every case in `eval/cases.csv` and compares the results with the expected statuses. Current result: **54 of 54 checks correct across 19 cases**. These are the specified field checks, not a claim that every field on every image is read correctly.
-
-| Case | What it tests |
-| --- | --- |
-| bourbon_ok, bourbon_front_and_back | Clean label; warning on a separate back panel |
-| bourbon_brand_case, bourbon_wrong_brand | Case-only difference passes; different brand fails |
-| bourbon_abv_mismatch, rye_proof_mismatch | Wrong ABV; proof that isn't 2x ABV |
-| bourbon_net_cl, bourbon_net_wrong | 75 cL equals 750 mL; 700 mL fails |
-| bourbon_title_case, bourbon_not_bold, bourbon_typo, bourbon_missing_word, bourbon_no_warning | Warning defects |
-| mezcal_with_origin, mezcal_no_origin | Country of origin on an import |
-| bourbon_photo, bourbon_bottle_photo | Rotated, blurred, glare; a phone photo of a bottle on a bar where the warning is a few pixels a line and curves with the glass |
-| not_a_label | No text at all |
-| ipa_photo_can_ok | Supplied can photo: producer address, complete warning, alcohol content and net contents |
-
-The label artwork was generated with ChatGPT, leaving an empty band where the warning goes. `scripts/make_test_labels.py` draws the warning into that band, so each defect is exactly what the test says it is. This is a small, fairly clean test set, and real submissions will be messier. It mainly shows that the rules behave as intended.
-
-The can photo is a separate regression fixture with text checked visually. Its stylized `Foghorn` logo and large `IPA` lettering are still not read correctly; those fields are not counted as successful checks in the evaluation.
-
 ## Assumptions
 
 - Most images are the flat label artwork submitted with an application. Photos of bottles are handled on a best-effort basis.
 - Labels are in English.
 - Application data is typed in by the agent or supplied in a CSV. There is no COLA integration.
 - Only the heading's case and weight are enforced. 16.22 does not require the rest of the statement to be in any particular case, so an all-caps warning is accepted.
-
-## Limitations
-
-- Minimum type size and characters per inch (16.22) are not checked. The physical size of the label can't be known from pixels alone.
-- Bold detection is a measurement, not a certainty, so it never fails a label on its own. Below about 20 px a heading, bold and regular strokes differ by less than a pixel, and the app says so instead of guessing. The close-up of the heading is there for the agent to judge.
-- On small print the recognizer confuses shapes (it read "ALCOHOLIC" as "ALCOHDLIC" on a 13 px line). When the image cannot resolve fine print, wording differences are reported for review rather than as a mismatch.
-- Strong glare and very small print can still defeat OCR. The app then says the text was hard to read and marks items for review rather than failing them.
-- Fine-print readability depends on how much of the image the label fills, not just megapixels. The supplied 1.6 megapixel can close-up is readable after a crop pass, while a distant bottle at the same resolution can leave only a few pixels per line. The image-size notice is a caution, not proof that the warning cannot be read.
-- Beverage-specific rules (sulfite declarations, age statements, color additives and so on) are out of scope.
-- There is no sign-in, audit trail or retention policy, all of which a production system would need.
-
-## What I would do next
-
-- Test against real approved labels from the TTB Public COLA Registry and tune the thresholds on those.
-- Add perspective correction for photos taken at an angle.
-- Run batches server-side with a queue and short-lived storage so large batches survive a closed tab.
-- Evaluate Azure AI Document Intelligence as a second reader for low-confidence images. It stays inside the Azure boundary the agency already uses.
 
 ## Project layout
 
