@@ -70,6 +70,10 @@ export const EMPTY_APPLICATION: Application = {
 export class ApiError extends Error {}
 
 const MAX_BUSY_RETRIES = 6
+// A request can wait up to 30 seconds for its turn on the server and then take a few
+// seconds to read. Past this, something is wrong and the reviewer should hear about it
+// rather than watch the spinner.
+const REQUEST_TIMEOUT_MS = 60_000
 
 function wait(ms: number, signal?: AbortSignal) {
   return new Promise<void>((resolve, reject) => {
@@ -92,10 +96,20 @@ export async function verifyLabel(
 
   for (let attempt = 0; ; attempt++) {
     let response: Response
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
     try {
-      response = await fetch('/api/verify', { method: 'POST', body, signal })
+      response = await fetch('/api/verify', {
+        method: 'POST',
+        body,
+        signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      })
     } catch (error) {
       if (signal?.aborted) throw error
+      if (timeout.aborted) {
+        throw new ApiError(
+          'The checker did not answer in time. Try again, or check this label on its own.',
+        )
+      }
       throw new ApiError(
         'Could not reach the checker. Check your connection and try again.',
       )

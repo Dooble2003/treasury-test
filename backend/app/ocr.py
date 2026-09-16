@@ -54,8 +54,10 @@ def load_image(data: bytes) -> np.ndarray:
 
 
 def _engine_params(kind: str) -> dict:
-    # Small CPU pools avoid contention between detection and recognition sessions.
-    threads = int(os.environ.get("OCR_THREADS", "0")) or min(os.cpu_count() or 2, 2)
+    # Only one label is read at a time, so OCR gets the whole box. Past four threads
+    # ONNX Runtime spends more time coordinating than reading (24 threads was 2-3x
+    # slower than 8 on the spike labels), and the deployment target has four vCPUs.
+    threads = int(os.environ.get("OCR_THREADS", "0")) or min(os.cpu_count() or 2, 4)
     params = {
         "Global.log_level": "error",
         "Global.max_side_len": 1600,

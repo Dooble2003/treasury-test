@@ -556,6 +556,17 @@ main {
   background: #e8f1f6;
 }
 
+.results__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+/* Says what the page is once it is off the screen and on a desk. */
+.results__print-header {
+  display: none;
+}
+
 .results__layout {
   display: grid;
   gap: 1.5rem;
@@ -873,6 +884,73 @@ main {
 
 .clear-images {
   margin-left: 1rem;
+}
+
+/* Dave prints his queue. A printout is the checklist and the label, on white paper,
+   without the controls that only work on screen. */
+@media print {
+  .prototype-banner,
+  .app-header,
+  .examples,
+  .actions,
+  .usa-skipnav,
+  .checking,
+  form,
+  .results__actions,
+  .checklist__toggle,
+  .checklist__item .usa-button--unstyled,
+  .image-viewer__tabs,
+  .batch-progress,
+  .filter-group {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff;
+    font-size: 11pt;
+  }
+
+  .app-container {
+    max-width: none;
+    padding: 0;
+  }
+
+  .results__print-header {
+    display: block;
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+  }
+
+  .step,
+  .results .usa-alert,
+  .checklist__item {
+    box-shadow: none;
+    border: 1px solid #767676;
+    background: #ffffff;
+  }
+
+  /* One column on paper: the checklist reads first, the label follows it. */
+  .results__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .results__image {
+    position: static;
+  }
+
+  .checklist__item,
+  .warning-detail,
+  .image-viewer {
+    break-inside: avoid;
+  }
+
+  .image-viewer__frame img {
+    max-height: 4in;
+  }
+
+  a[href]::after {
+    content: '';
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

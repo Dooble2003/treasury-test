@@ -11,16 +11,18 @@ It is a helper for the reviewer, not an approval system. Every field comes back 
 The quickest way is the example buttons in the app:
 
 - **Check one label** has "Example: label that matches" and "Example: label with a problem". Each loads a sample label and application and runs the check.
-- **Check many labels** has "Load an example batch", which loads a 15-row spreadsheet and its images.
+- **Check many labels** has "Load an example batch", which loads a 16-row spreadsheet and its images.
 
 Sample images are in `frontend/public/samples/`. The full test set with expected results is in `eval/`.
+
+A single label's results have a "Print these results" button, which opens every item and prints the checklist and the label without the on-screen controls.
 
 ## What it checks
 
 | Field | How it is compared |
 | --- | --- |
 | Brand name, class or type | Same words, ignoring case, punctuation and spacing. `STONE'S THROW` on the label matches `Stone's Throw` in the application, with a note that the capitalization differs. A near miss (one or two letters off) is marked for a closer look. |
-| Alcohol content | The percentage is compared as a number. If the label also shows proof, it has to be twice the ABV. |
+| Alcohol content | The percentage is compared as a number. An application that states only the proof (`90 Proof`) is read as half that. If the label also shows proof, it has to be twice the ABV. |
 | Net contents | Converted to mL (mL, cL, L and fl oz are understood) and compared within 1.5%, so `12 FL OZ` matches `355 mL`. |
 | Bottler or producer | Each comma-separated part of the name and address must appear. State names and abbreviations count as the same (`Kentucky` / `KY`). Unconfirmed results get one enlarged crop read of the likely producer line. |
 | Country of origin | Checked only when the application gives one. A country name embedded in other text, such as `India Pale Ale`, needs review unless there is an origin statement or a separate country line. |
@@ -99,8 +101,8 @@ A word that differs from the statement fails the check when the OCR was confiden
 ## Decisions and trade-offs
 
 - **Local OCR instead of a cloud AI service.** Marcus mentioned that the agency firewall blocks many outbound ML endpoints and that the last vendor pilot broke because of it. Running OCR in the container avoids that, keeps label images inside the deployment, and costs nothing per label. I also avoided using a vision LLM to read the warning: they tend to "correct" text toward what they expect, and a well known statement like this one is exactly where a misspelling could be silently fixed.
-- **Speed.** Sarah's bar was about 5 seconds. The 18-case local evaluation averaged 2.65 s, with a 2.08 s median and 5.88 s at the 95th percentile (4 OCR threads, including image decoding but excluding network upload). The supplied can photo took 2.13 s. The default is at most 4 OCR threads; `OCR_THREADS` can override it for deployment measurements. These desktop results meet the average target, but individual checks can exceed 5 seconds. Cloud latency still needs measurement.
-- **One OCR job at a time per server.** OCR already uses all its threads for a single label, so running two at once just makes both slower. Extra requests queue for up to 30 seconds, then get a "busy, try again" response that the batch page retries automatically. At roughly 2 seconds a label, a 300-label batch takes about 10 minutes on one instance. More throughput means more instances.
+- **Speed.** Sarah's bar was about 5 seconds. The 19-case local evaluation averaged 1.86 s, with a 1.63 s median and 3.54 s at the 95th percentile (including image decoding, excluding network upload). The supplied can photo took 1.99 s and the hardest case, a rotated and blurred photo, 4.25 s. Only one label is read at a time, so OCR gets the whole machine: the default is at most 4 threads, which is the vCPU count of the instance this is sized for, and past that ONNX Runtime spends more time coordinating than reading. `OCR_THREADS` overrides it. These are desktop numbers and cloud latency still needs measurement.
+- **One OCR job at a time per server.** OCR already uses all its threads for a single label, so running two at once just makes both slower. Extra requests queue for up to 30 seconds, then get a "busy, try again" response that the batch page retries automatically. A request that has gone unanswered for 60 seconds is given up on with a message, rather than leaving a reviewer watching a spinner. At roughly 2 seconds a label, a 300-label batch takes about 10 minutes on one instance. More throughput means more instances.
 - **Nothing stored.** Images are processed in memory and dropped. The downside is that batch results only live in the browser tab until you download the CSV, and closing the tab mid-batch loses progress (the page warns first).
 - **Looks like a government tool, not a dashboard.** The interface builds on USWDS, on a warm off-white ground rather than stark white, with a navy header and a single gold accent. Label artwork is cream and white paper, so a dark or heavily tinted interface would fight the thing being reviewed, and low contrast is the wrong choice for a team where half the reviewers are over 50. Motion is limited to showing where new content came from: results rise into place, statuses settle, the batch bar fills. All of it is disabled under prefers-reduced-motion.
 - **Built to fit on a screen.** Images and application details sit side by side, the check button stays in reach at the bottom, and results that matched collapse to one line so the items needing a decision are what you see. A reviewer working a queue should not have to scroll to find the problem.

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type Ref } from 'react'
+import { useEffect, useState, type CSSProperties, type Ref } from 'react'
 import type {
   FieldResult,
   Overall,
@@ -27,12 +27,25 @@ interface Props {
   result: VerifyResponse
   files: File[]
   headingRef?: Ref<HTMLHeadingElement>
+  printable?: boolean
 }
 
-export default function Results({ result, files, headingRef }: Props) {
+export default function Results({
+  result,
+  files,
+  headingRef,
+  printable,
+}: Props) {
   const [selected, setSelected] = useState<string | null>(null)
   const [showAll, setShowAll] = useState(false)
   const [opened, setOpened] = useState<string[]>([])
+  const [printRequest, setPrintRequest] = useState(0)
+
+  // Collapsed items are not in the page, so a print stylesheet cannot bring them back.
+  // Open everything, let React commit it, then print.
+  useEffect(() => {
+    if (printRequest) window.print()
+  }, [printRequest])
   const boxes =
     result.fields.find((field) => field.key === selected)?.boxes ?? []
   const summary = SUMMARY[result.overall]
@@ -51,6 +64,9 @@ export default function Results({ result, files, headingRef }: Props) {
 
   return (
     <div className="results">
+      <p className="results__print-header">
+        Label Check: {files.map((file) => file.name).join(', ')}
+      </p>
       <div className={`usa-alert usa-alert--${summary.alert}`}>
         <div className="usa-alert__body">
           <h2 className="usa-alert__heading" tabIndex={-1} ref={headingRef}>
@@ -65,17 +81,31 @@ export default function Results({ result, files, headingRef }: Props) {
               attention. They are open below.
             </p>
           )}
-          {result.fields.length > 0 && (
-            <button
-              type="button"
-              className="usa-button usa-button--unstyled results__toggle"
-              onClick={() => setShowAll(!showAll)}
-            >
-              {showAll
-                ? 'Collapse the items that matched'
-                : `Show details for all ${result.fields.length} items`}
-            </button>
-          )}
+          <div className="results__actions">
+            {result.fields.length > 0 && (
+              <button
+                type="button"
+                className="usa-button usa-button--unstyled results__toggle"
+                onClick={() => setShowAll(!showAll)}
+              >
+                {showAll
+                  ? 'Collapse the items that matched'
+                  : `Show details for all ${result.fields.length} items`}
+              </button>
+            )}
+            {printable && (
+              <button
+                type="button"
+                className="usa-button usa-button--unstyled results__toggle"
+                onClick={() => {
+                  setShowAll(true)
+                  setPrintRequest((count) => count + 1)
+                }}
+              >
+                Print these results
+              </button>
+            )}
+          </div>
         </div>
       </div>
 

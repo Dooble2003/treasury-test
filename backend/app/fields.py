@@ -9,7 +9,9 @@ from app.text import clean, fix_digits, loose, loose_address
 
 CLOSE_MATCH = 90
 
-ABV_RE = re.compile(r"(\d{1,2}(?:[.,]\d{1,2})?)\s*%")
+# The lookbehind keeps the tail of a longer number out of the reading, so "100% Agave"
+# on the alcohol line does not come back as 0%.
+ABV_RE = re.compile(r"(?<!\d)(\d{1,2}(?:[.,]\d{1,2})?)\s*%")
 PROOF_RE = re.compile(r"(\d{2,3}(?:[.,]\d)?)\s*proof", re.IGNORECASE)
 ALCOHOL_CONTEXT_RE = re.compile(r"alc|vol|abv|alcohol", re.IGNORECASE)
 VOLUME_RE = re.compile(
@@ -168,12 +170,17 @@ def check_alcohol(app: Application, lines: list[Line]) -> FieldResult:
         return result
 
     app_text = fix_digits(result.expected)
-    app_abv_match = ABV_RE.search(app_text) or re.search(r"\d{1,2}(?:[.,]\d{1,2})?", app_text)
-    if not app_abv_match:
+    if percent := ABV_RE.search(app_text):
+        app_abv = _parse_number(percent.group(1))
+    elif proof := PROOF_RE.search(app_text):
+        # Some applications state the strength only as proof, which is twice the ABV.
+        app_abv = _parse_number(proof.group(1)) / 2
+    elif bare := re.search(r"\d{1,2}(?:[.,]\d{1,2})?", app_text):
+        app_abv = _parse_number(bare[0])
+    else:
         result.status = "review"
         result.note = "Could not read a percentage in the application value."
         return result
-    app_abv = _parse_number(app_abv_match.group(1) if app_abv_match.groups() else app_abv_match[0])
 
     readings: list[tuple[float, Line, str]] = []
     for line, text in _alcohol_lines(lines):

@@ -226,6 +226,7 @@ export default function SingleCheck() {
             result={state.result}
             files={state.files}
             headingRef={resultsHeading}
+            printable
           />
           <div className="actions actions--static">
             <button

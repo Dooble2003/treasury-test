@@ -45,7 +45,14 @@ def test_one_letter_off_needs_review(lines_from):
 
 @pytest.mark.parametrize(
     ("value", "status"),
-    [("45% Alc./Vol. (90 Proof)", "pass"), ("45", "pass"), ("40%", "fail"), ("", "not_checked")],
+    [
+        ("45% Alc./Vol. (90 Proof)", "pass"),
+        ("45", "pass"),
+        ("90 Proof", "pass"),
+        ("80 Proof", "fail"),
+        ("40%", "fail"),
+        ("", "not_checked"),
+    ],
 )
 def test_alcohol(lines_from, value, status):
     app = Application(alcohol_content=value)
@@ -62,6 +69,15 @@ def test_proof_must_be_double_abv(lines_from):
 def test_percent_without_alcohol_context_is_ignored(lines_from):
     lines = lines_from("100% Agave", "40% ALC/VOL")
     assert check_alcohol(Application(alcohol_content="40%"), lines).status == "pass"
+
+
+def test_a_three_digit_percent_is_not_read_as_an_abv(lines_from):
+    # "100% Agave" used to contribute a 0% reading, which then became the reported
+    # evidence when the real alcohol statement on the same line disagreed.
+    lines = lines_from("100% Agave Tequila 40% Alc/Vol")
+    result = check_alcohol(Application(alcohol_content="45%"), lines)
+    assert result.status == "fail"
+    assert result.note.startswith("Label says 40%")
 
 
 @pytest.mark.parametrize(
